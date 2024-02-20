@@ -3,6 +3,7 @@ import UIKit
 import MobileCoreServices
 import ImageIO
 import AVFoundation
+import PDFKit
 
 
 public class SwiftPdfMergerPlugin: NSObject, FlutterPlugin {
@@ -95,37 +96,20 @@ public class SwiftPdfMergerPlugin: NSObject, FlutterPlugin {
   do{
 
             if let paths = args["paths"] as? [String], let outputDirPath = args["outputDirPath"] as? String {
-
-                 guard UIGraphicsBeginPDFContextToFile(outputDirPath, CGRect.zero, nil) else {
-                     return "error"
-                 }
-                 guard let destContext = UIGraphicsGetCurrentContext() else {
-                     return "error"
-                 }
-
-
-                       for index in 0 ..< paths.count {
-                              let pdfFile = paths[index]
-                              let pdfUrl = NSURL(fileURLWithPath: pdfFile)
-                              guard let pdfRef = CGPDFDocument(pdfUrl) else {
-                                  continue
-                              }
-
-                              for i in 1 ... pdfRef.numberOfPages {
-                                  if let page = pdfRef.page(at: i) {
-                                      var mediaBox = page.getBoxRect(.mediaBox)
-                                      destContext.beginPage(mediaBox: &mediaBox)
-                                      destContext.drawPDFPage(page)
-                                      destContext.endPage()
-                                  }
-                              }
-                          }
-
-
-                     destContext.closePDF()
-                     UIGraphicsEndPDFContext()
-
-                      return outputDirPath
+                
+                let outPutDocument = PDFDocument()
+                        
+                for filePath in paths {
+                    if let pdf = PDFDocument(url: URL(fileURLWithPath: filePath)) {
+                        for p in 0..<pdf.pageCount {
+                            let page = pdf.page(at: p)!
+                            let copiedPage = page.copy() as! PDFPage // from docs
+                            outPutDocument.insert(copiedPage, at: outPutDocument.pageCount)
+                        }
+                    }
+                }
+                outPutDocument.write(toFile: outputDirPath)
+                return outputDirPath
              }
 
      } catch {
